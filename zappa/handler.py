@@ -327,6 +327,8 @@ class LambdaHandler:
             arn = record.get("eventSourceARN")
         elif "eventSource" in record and record.get("eventSource") == "aws:sqs":
             arn = record.get("eventSourceARN")
+        elif "eventSource" in record and record.get("eventSource") == "aws:mq":
+            arn = record.get("eventSourceArn")
         elif "s3" in record:
             arn = record["s3"]["bucket"]["arn"]
 
@@ -497,6 +499,18 @@ class LambdaHandler:
             if app_function:
                 result = self.run_function(app_function, event, context)
                 logger.debug("Result of %s:" % whole_function)
+                logger.debug(result)
+            else:
+                logger.error("Cannot find a function to process the triggered event.")
+            return result
+
+        # This is an MQ event
+        elif event.get("eventSource", None):
+            result = None
+            whole_function = self.get_function_for_aws_event(event)
+            if whole_function:
+                app_function = self.import_module_and_get_function(whole_function)
+                result = self.run_function(app_function, event, context)
                 logger.debug(result)
             else:
                 logger.error("Cannot find a function to process the triggered event.")
